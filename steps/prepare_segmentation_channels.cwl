@@ -4,7 +4,7 @@ label: Prepare images for segmentation
 
 requirements:
   DockerRequirement:
-    dockerPull: hubmap/mibi-scripts:latest
+    dockerPull: hubmap/phenocycler-scripts:latest
     dockerOutputDirectory: "/output"
 
 baseCommand: ["python", "/opt/prepare_segmentation_channels.py"]
@@ -19,6 +19,11 @@ inputs:
     type: File
     inputBinding:
       prefix: "--pipeline_config"
+
+  ome_tiff:
+    type: File
+    inputBinding:
+      prefix: "--ome_tiff"
 
 
 outputs:

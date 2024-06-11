@@ -10,7 +10,9 @@ inputs:
   data_dir:
     type: Directory
   meta_path:
-    type: File
+    type: File?
+  channels_path:
+    type: File?
 
 outputs:
   pipeline_output:
@@ -19,12 +21,25 @@ outputs:
     label: "Expressions and segmentation masks in OME-TIFF format"
 
 steps:
+  convert_to_bioformats:
+    in:
+      data_dir:
+        source: data_dir
+    out:
+      - ome_tiff
+    run: steps/convert_to_bioformats.cwl
+
   collect_dataset_info:
     in:
       data_dir:
         source: data_dir
       meta_path:
         source: meta_path
+      channels_path:
+        source: channels_path
+      ome_tiff:
+        source: convert_to_bioformats/ome_tiff
+
     out:
       - pipeline_config
     run: steps/collect_dataset_info.cwl
@@ -35,6 +50,8 @@ steps:
         source: data_dir
       pipeline_config:
         source: collect_dataset_info/pipeline_config
+      ome_tiff:
+        source: convert_to_bioformats/ome_tiff
     out:
       - segmentation_channels
     run: steps/prepare_segmentation_channels.cwl
@@ -59,6 +76,8 @@ steps:
         source: run_segmentation/mask_dir
       pipeline_config:
         source: collect_dataset_info/pipeline_config
+      ome_tiff:
+        source: convert_to_bioformats/ome_tiff
     out:
       - pipeline_output
     run: steps/collect_output.cwl

@@ -136,12 +136,14 @@ def modify_and_save_img(
     new_ome_meta = modify_initial_ome_meta(
         ome_meta, segmentation_channels, pixel_size_x, pixel_size_y, pixel_unit_x, pixel_unit_y
     )
-    with tif.TiffWriter(path_to_str(out_path), bigtiff=True) as TW:
+
+    with tif.TiffWriter(path_to_str(out_path), bigtiff=True, shaped=False) as TW:
         TW.write(
             new_img_stack,
             contiguous=True,
             photometric="minisblack",
             description=new_ome_meta,
+            metadata=None
         )
 
 
@@ -185,15 +187,16 @@ def collect_expr(
     pixel_unit_x: str,
     pixel_unit_y: str,
     antb_df: pd.DataFrame,
+    ome_tiff: Path
 ):
-    for image_file in data_dir.glob("*.ome.tiff"):
+    for image_file in data_dir.glob("*.qptiff"):
         filename_base = image_file.name.split(".")[0]
         new_filename = f"{filename_base}_expr.ome.tiff"
         output_file = out_dir / new_filename
-        new_xml = update_omexml(image_file, antb_df)
+        new_xml = update_omexml(ome_tiff, antb_df)
 
         modify_and_save_img(
-            image_file,
+            ome_tiff,
             output_file,
             segmentation_channels,
             pixel_size_x,
@@ -204,7 +207,12 @@ def collect_expr(
         )
 
 
-def main(data_dir: Path, mask_dir: Path, pipeline_config_path: Path):
+def collect_ome_tiff(ome_tiff: Path, out_dir: Path):
+    output_file = out_dir / ome_tiff.name
+    shutil.copy(ome_tiff, output_file)
+
+
+def main(data_dir: Path, mask_dir: Path, pipeline_config_path: Path, ome_tiff: Path):
     pipeline_config = read_pipeline_config(pipeline_config_path)
     listing = pipeline_config["dataset_map_all_slices"]
     segmentation_channels = pipeline_config["segmentation_channels"]
@@ -238,7 +246,9 @@ def main(data_dir: Path, mask_dir: Path, pipeline_config_path: Path):
         pixel_unit_x,
         pixel_unit_y,
         antb_info,
+        ome_tiff
     )
+    #collect_ome_tiff(ome_tiff, out_dir)
 
 
 if __name__ == "__main__":
@@ -246,6 +256,7 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", type=Path, help="path to directory with images")
     parser.add_argument("--mask_dir", type=Path, help="path to directory with segmentation masks")
     parser.add_argument("--pipeline_config", type=Path, help="path to region map file YAML")
+    parser.add_argument("--ome_tiff", type=Path, help="path to the converted ome.tiff file")
     args = parser.parse_args()
 
-    main(args.data_dir, args.mask_dir, args.pipeline_config)
+    main(args.data_dir, args.mask_dir, args.pipeline_config, args.ome_tiff)
